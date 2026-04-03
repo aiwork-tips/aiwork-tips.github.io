@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatGPTプロンプト生成ツール</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════
+       リセット & 基盤
+    ══════════════════════════════════ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --navy-900: #060f1e;
+      --navy-800: #0a1628;
+      --navy-700: #0f2040;
+      --navy-600: #152c52;
+      --navy-500: #1e3a5f;
+      --navy-400: #2a4f7a;
+      --navy-300: #3a6494;
+
+      --gold-500: #c9a84c;
+      --gold-400: #d4b96a;
+      --gold-300: #e2cc8e;
+      --gold-200: #f0dfb8;
+      --gold-glow: rgba(201, 168, 76, 0.25);
+
+      --text-primary: #eae6df;
+      --text-secondary: #8da0b8;
+      --text-muted: #506070;
+
+      --card-bg: rgba(13, 28, 52, 0.85);
+      --card-border: rgba(201, 168, 76, 0.18);
+      --input-bg: rgba(6, 15, 30, 0.7);
+      --input-border: rgba(201, 168, 76, 0.22);
+      --divider: rgba(201, 168, 76, 0.12);
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', 'Hiragino Sans', 'Meiryo', sans-serif;
+      font-weight: 400;
+      background: var(--navy-900);
+      background-image:
+        radial-gradient(ellipse 80% 60% at 20% 0%, rgba(26, 52, 100, 0.6) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(15, 32, 64, 0.8) 0%, transparent 60%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 56px 20px 64px;
+      color: var(--text-primary);
+    }
+
+    /* ══════════════════════════════════
+       ヘッダー
+    ══════════════════════════════════ */
+    header {
+      text-align: center;
+      margin-bottom: 52px;
+    }
+
+    .header-eyebrow {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-500);
+      border: 1px solid var(--gold-500);
+      border-radius: 30px;
+      padding: 5px 18px;
+      margin-bottom: 20px;
+      opacity: 0.9;
+    }
+
+    header h1 {
+      font-family: 'Playfair Display', 'Noto Sans JP', serif;
+      font-size: clamp(1.7rem, 5vw, 2.5rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--gold-200) 0%, var(--gold-500) 50%, var(--gold-300) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.25;
+      margin-bottom: 14px;
+      letter-spacing: -0.01em;
+    }
+
+    header p {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      font-weight: 300;
+      letter-spacing: 0.03em;
+    }
+
+    .header-rule {
+      width: 48px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
+      margin: 20px auto 0;
+      border: none;
+    }
+
+    /* ══════════════════════════════════
+       カード
+    ══════════════════════════════════ */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-xl);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.04) inset,
+        0 8px 40px rgba(0,0,0,0.45),
+        0 2px 8px rgba(0,0,0,0.3);
+      padding: 44px 40px;
+      width: 100%;
+      max-width: 720px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    /* ══════════════════════════════════
+       ラベル & 入力
+    ══════════════════════════════════ */
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold-400);
+      margin-bottom: 12px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 18px 20px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius-md);
+      font-size: 0.97rem;
+      font-family: inherit;
+      font-weight: 400;
+      color: var(--text-primary);
+      resize: vertical;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      outline: none;
+      line-height: 1.7;
+    }
+
+    textarea:focus {
+      border-color: var(--gold-500);
+      box-shadow: 0 0 0 3px var(--gold-glow);
+    }
+
+    textarea::placeholder {
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+
+    /* ══════════════════════════════════
+       オプション
+    ══════════════════════════════════ */
+    .options {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .options select {
+      flex: 1;
+      min-width: 150px;
+      padding: 12px 16px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-family: inherit;
+      font-weight: 400;
+      color: var(--text-secondary);
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.3s, box-shadow 0.3s, color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    .options select:focus {
+      border-color: var(--gold-500);
+      box-shadow: 0 0 0 3px var(--gold-glow);
+      color: var(--text-primary);
+    }
+
+    .options select option {
+      background: var(--navy-700);
+      color: var(--text-primary);
+    }
+
+    /* ══════════════════════════════════
+       生成ボタン
+    ══════════════════════════════════ */
+    .generate-btn {
+      position: relative;
+      margin-top: 28px;
+      width: 100%;
+      padding: 17px;
+      background: linear-gradient(135deg, #b8923e 0%, #d4af5a 40%, #c9a84c 70%, #a07828 100%);
+      color: #0a1628;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.97rem;
+      font-family: inherit;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+      box-shadow: 0 4px 20px rgba(201, 168, 76, 0.3), 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .generate-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+
+    .generate-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(201, 168, 76, 0.45), 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .generate-btn:hover::before {
+      transform: translateX(100%);
+    }
+
+    .generate-btn:active {
+      transform: translateY(0) scale(0.99);
+    }
+
+    /* ══════════════════════════════════
+       ディバイダー
+    ══════════════════════════════════ */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--divider);
+      margin: 36px 0;
+    }
+
+    /* ══════════════════════════════════
+       結果エリア
+    ══════════════════════════════════ */
+    .result-section {
+      display: none;
+    }
+
+    .result-section.visible {
+      display: block;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .result-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold-400);
+    }
+
+    .result-box {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius-md);
+      padding: 20px 22px;
+      font-size: 0.93rem;
+      line-height: 1.8;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-weight: 300;
+    }
+
+    /* ══════════════════════════════════
+       コピーボタン
+    ══════════════════════════════════ */
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: transparent;
+      color: var(--gold-500);
+      border: 1px solid rgba(201, 168, 76, 0.35);
+      border-radius: 30px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.25s, border-color 0.25s, color 0.25s, transform 0.2s;
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover {
+      background: var(--gold-glow);
+      border-color: var(--gold-500);
+      transform: translateY(-1px);
+    }
+
+    .copy-btn:active {
+      transform: translateY(0);
+    }
+
+    .copy-btn.copied {
+      background: rgba(52, 180, 100, 0.15);
+      border-color: rgba(52, 180, 100, 0.4);
+      color: #5dca8a;
+    }
+
+    /* ══════════════════════════════════
+       さらに強くするボタン
+    ══════════════════════════════════ */
+    .strengthen-btn {
+      position: relative;
+      margin-top: 24px;
+      width: 100%;
+      padding: 15px;
+      background: transparent;
+      color: var(--gold-400);
+      border: 1px solid rgba(201, 168, 76, 0.4);
+      border-radius: var(--radius-md);
+      font-size: 0.93rem;
+      font-family: inherit;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      overflow: hidden;
+      transition: background 0.3s, border-color 0.3s, color 0.3s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+    }
+
+    .strengthen-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(201, 168, 76, 0.06) 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .strengthen-btn:hover {
+      background: rgba(201, 168, 76, 0.08);
+      border-color: var(--gold-400);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(201, 168, 76, 0.2);
+    }
+
+    .strengthen-btn:hover::after {
+      opacity: 1;
+    }
+
+    .strengthen-btn:active {
+      transform: translateY(0);
+    }
+
+    /* ══════════════════════════════════
+       改良版3パターン
+    ══════════════════════════════════ */
+    .variants-section {
+      display: none;
+    }
+
+    .variants-section.visible {
+      display: block;
+    }
+
+    .variants-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold-400);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .variants-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--divider);
+    }
+
+    .variant-card {
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255,255,255,0.06);
+      overflow: hidden;
+      margin-bottom: 16px;
+      background: rgba(6, 15, 30, 0.5);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .variant-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .variant-card:hover {
+      border-color: rgba(201, 168, 76, 0.2);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+
+    .variant-card.detail   { border-left: 3px solid #3a8fd4; }
+    .variant-card.concise  { border-left: 3px solid #38c472; }
+    .variant-card.creative { border-left: 3px solid #9b72e0; }
+
+    .variant-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .variant-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 30px;
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .badge-detail   { background: rgba(58, 143, 212, 0.18); color: #6cb8f0; border: 1px solid rgba(58,143,212,0.25); }
+    .badge-concise  { background: rgba(56, 196, 114, 0.15); color: #5de09a; border: 1px solid rgba(56,196,114,0.25); }
+    .badge-creative { background: rgba(155, 114, 224, 0.15); color: #c49ef8; border: 1px solid rgba(155,114,224,0.25); }
+
+    .variant-sublabel {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+
+    .variant-body {
+      padding: 18px 20px;
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-weight: 300;
+    }
+
+    /* ══════════════════════════════════
+       noteバナー
+    ══════════════════════════════════ */
+    .note-banner {
+      margin-top: 36px;
+      width: 100%;
+      max-width: 720px;
+      position: relative;
+      background: linear-gradient(135deg, rgba(30, 20, 5, 0.9) 0%, rgba(20, 15, 4, 0.95) 100%);
+      border: 1px solid rgba(201, 168, 76, 0.35);
+      border-radius: var(--radius-xl);
+      padding: 36px 40px;
+      text-align: center;
+      display: none;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    }
+
+    .note-banner::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 120px;
+      background: radial-gradient(ellipse, rgba(201, 168, 76, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .note-banner.visible {
+      display: block;
+    }
+
+    .note-banner-icon {
+      font-size: 1.6rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .note-banner h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      color: var(--gold-300);
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .note-banner p {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      font-weight: 300;
+      line-height: 1.8;
+    }
+
+    .note-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 32px;
+      background: linear-gradient(135deg, #b8923e 0%, #d4af5a 50%, #c9a84c 100%);
+      color: #0a1628;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+      box-shadow: 0 4px 16px rgba(201, 168, 76, 0.35);
+    }
+
+    .note-link:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 28px rgba(201, 168, 76, 0.5);
+    }
+
+    .note-link:active {
+      transform: translateY(0);
+    }
+
+    /* ══════════════════════════════════
+       フッター
+    ══════════════════════════════════ */
+    footer {
+      margin-top: 40px;
+      font-size: 0.78rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+
+    /* ══════════════════════════════════
+       レスポンシブ
+    ══════════════════════════════════ */
+    @media (max-width: 600px) {
+      body {
+        padding: 36px 14px 48px;
+      }
+      header {
+        margin-bottom: 36px;
+      }
+      .card {
+        padding: 28px 22px;
+        border-radius: var(--radius-lg);
+      }
+      .note-banner {
+        padding: 28px 22px;
+        border-radius: var(--radius-lg);
+      }
+      .variant-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .variant-sublabel {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-eyebrow">AI Prompt Generator</div>
+    <h1>ChatGPTプロンプト生成ツール</h1>
+    <p>用途を入力するだけで、最適なプロンプトを自動生成します</p>
+    <hr class="header-rule">
+  </header>
+
+  <div class="card">
+    <label for="use-case">用途・やりたいこと</label>
+    <textarea id="use-case" placeholder="例：ブログ記事のタイトルを10個考えてほしい、英文メールの返信を書いてほしい、Pythonのコードをレビューしてほしい…"></textarea>
+
+    <div class="options">
+      <select id="tone">
+        <option value="">口調を選ぶ（任意）</option>
+        <option value="丁寧でプロフェッショナルな">丁寧・プロ</option>
+        <option value="フレンドリーでカジュアルな">フレンドリー</option>
+        <option value="簡潔でシンプルな">簡潔・シンプル</option>
+        <option value="詳しく丁寧に説明する">詳しく説明</option>
+        <option value="クリエイティブで独創的な">クリエイティブ</option>
+      </select>
+
+      <select id="output-format">
+        <option value="">出力形式（任意）</option>
+        <option value="箇条書きで">箇条書き</option>
+        <option value="番号付きリストで">番号付きリスト</option>
+        <option value="表形式で">表形式</option>
+        <option value="ステップバイステップで">ステップ形式</option>
+        <option value="文章形式で">文章形式</option>
+      </select>
+
+      <select id="language">
+        <option value="日本語で">出力：日本語</option>
+        <option value="英語で">出力：英語</option>
+        <option value="日本語・英語両方で">日本語＋英語</option>
+      </select>
+    </div>
+
+    <button class="generate-btn" onclick="generatePrompt()">プロンプトを生成する</button>
+
+    <!-- 基本プロンプト結果 -->
+    <div class="result-section" id="result-section">
+      <hr class="divider">
+      <div class="result-header">
+        <span class="result-label">生成されたプロンプト</span>
+        <button class="copy-btn" id="copy-btn" onclick="copyText('result-box', 'copy-btn')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          コピー
+        </button>
+      </div>
+      <div class="result-box" id="result-box"></div>
+
+      <!-- さらに強くするボタン -->
+      <button class="strengthen-btn" id="strengthen-btn" onclick="strengthenPrompt()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+          <polyline points="17 6 23 6 23 12"></polyline>
+        </svg>
+        さらに強くする
+      </button>
+    </div>
+
+    <!-- 改良版3パターン -->
+    <div class="variants-section" id="variants-section">
+      <hr class="divider">
+      <div class="variants-title">改良版プロンプト &mdash; 3パターン</div>
+
+      <!-- より詳しく -->
+      <div class="variant-card detail">
+        <div class="variant-header">
+          <div class="variant-label">
+            <span class="badge badge-detail">より詳しく</span>
+            <span class="variant-sublabel">背景・条件・出力例まで指定した詳細版</span>
+          </div>
+          <button class="copy-btn" id="copy-detail" onclick="copyText('variant-detail', 'copy-detail')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            コピー
+          </button>
+        </div>
+        <div class="variant-body" id="variant-detail"></div>
+      </div>
+
+      <!-- より簡潔に -->
+      <div class="variant-card concise">
+        <div class="variant-header">
+          <div class="variant-label">
+            <span class="badge badge-concise">より簡潔に</span>
+            <span class="variant-sublabel">シンプルで素早く使える短縮版</span>
+          </div>
+          <button class="copy-btn" id="copy-concise" onclick="copyText('variant-concise', 'copy-concise')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            コピー
+          </button>
+        </div>
+        <div class="variant-body" id="variant-concise"></div>
+      </div>
+
+      <!-- より創造的に -->
+      <div class="variant-card creative">
+        <div class="variant-header">
+          <div class="variant-label">
+            <span class="badge badge-creative">より創造的に</span>
+            <span class="variant-sublabel">視点・発想を広げたクリエイティブ版</span>
+          </div>
+          <button class="copy-btn" id="copy-creative" onclick="copyText('variant-creative', 'copy-creative')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            コピー
+          </button>
+        </div>
+        <div class="variant-body" id="variant-creative"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- noteリンクバナー -->
+  <!-- リンク先を設定する場合は下の href="#" を実際のURLに変更してください -->
+  <div class="note-banner" id="note-banner">
+    <span class="note-banner-icon">✦</span>
+    <h3>プロンプトテクニックをもっと深く知りたい方へ</h3>
+    <p>このツールで使っているテクニックの仕組みや応用方法を<br>noteで詳しく解説しています。</p>
+    <a class="note-link" href="https://note.com/aiwork_tips" target="_blank" rel="noopener noreferrer">
+      noteで詳しく読む
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    </a>
+  </div>
+
+  <footer>生成されたプロンプトをそのままChatGPTに貼り付けてお使いください</footer>
+
+  <script>
+    // ────────────────────────────────────────────
+    //  プロンプト生成（基本）
+    // ────────────────────────────────────────────
+    function generatePrompt() {
+      const useCase = document.getElementById('use-case').value.trim();
+      if (!useCase) {
+        alert('用途を入力してください。');
+        return;
+      }
+
+      const tone = document.getElementById('tone').value;
+      const outputFormat = document.getElementById('output-format').value;
+      const language = document.getElementById('language').value;
+
+      const prompt = buildPrompt(useCase, tone, outputFormat, language);
+
+      document.getElementById('result-box').textContent = prompt;
+
+      const resultSection = document.getElementById('result-section');
+      resultSection.classList.add('visible');
+
+      // 改良版・noteバナーをリセット
+      document.getElementById('variants-section').classList.remove('visible');
+      document.getElementById('note-banner').classList.remove('visible');
+
+      resetCopyBtn('copy-btn');
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function buildPrompt(useCase, tone, outputFormat, language) {
+      let lines = [];
+      lines.push(`あなたは優秀なアシスタントです。以下の依頼に応えてください。\n`);
+      lines.push(`【依頼内容】\n${useCase}`);
+
+      let constraints = [];
+      if (tone)         constraints.push(`・${tone}スタイルで回答してください。`);
+      if (outputFormat) constraints.push(`・${outputFormat}まとめてください。`);
+      if (language)     constraints.push(`・${language}回答してください。`);
+      constraints.push(`・不明点があれば、回答前に質問してください。`);
+      constraints.push(`・回答は具体的かつ実用的な内容にしてください。`);
+
+      lines.push(`\n【回答のルール】\n${constraints.join('\n')}`);
+      return lines.join('\n');
+    }
+
+    // ────────────────────────────────────────────
+    //  さらに強くする（3パターン生成）
+    // ────────────────────────────────────────────
+    function strengthenPrompt() {
+      const useCase = document.getElementById('use-case').value.trim();
+      const tone = document.getElementById('tone').value;
+      const outputFormat = document.getElementById('output-format').value;
+      const language = document.getElementById('language').value;
+
+      document.getElementById('variant-detail').textContent   = buildDetailVariant(useCase, tone, outputFormat, language);
+      document.getElementById('variant-concise').textContent  = buildConciseVariant(useCase, language);
+      document.getElementById('variant-creative').textContent = buildCreativeVariant(useCase, language);
+
+      ['copy-detail', 'copy-concise', 'copy-creative'].forEach(id => resetCopyBtn(id));
+
+      const variantsSection = document.getElementById('variants-section');
+      variantsSection.classList.add('visible');
+      document.getElementById('note-banner').classList.add('visible');
+
+      variantsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // より詳しく版
+    function buildDetailVariant(useCase, tone, outputFormat, language) {
+      const lang = language || '日本語で';
+      const toneStr = tone ? `・${tone}スタイルで回答してください。\n` : '';
+      const fmtStr  = outputFormat ? `・${outputFormat}まとめてください。\n` : '';
+      return `あなたは該当分野の専門家です。以下の依頼に対して、背景・理由・具体例を含めながら詳細に回答してください。
+
+【依頼内容】
+${useCase}
+
+【回答のルール】
+${toneStr}${fmtStr}・${lang}回答してください。
+・回答の冒頭に「要約（3行以内）」を入れてください。
+・その後に詳細な説明を書いてください。
+・具体例や数字があれば積極的に使ってください。
+・専門用語を使う場合は括弧内で簡単に説明してください。
+・不明点があれば回答前に確認してください。`;
+    }
+
+    // より簡潔に版
+    function buildConciseVariant(useCase, language) {
+      const lang = language || '日本語で';
+      return `以下を${lang}、簡潔に答えてください。余分な説明は不要です。
+
+【依頼】
+${useCase}
+
+・結論から先に書いてください。
+・全体で300字以内を目安にしてください。
+・箇条書きで簡潔にまとめてください。`;
+    }
+
+    // より創造的に版
+    function buildCreativeVariant(useCase, language) {
+      const lang = language || '日本語で';
+      return `あなたは型にはまらない発想を持つクリエイティブディレクターです。以下の依頼に対して、一般的な答えにとどまらず、ユニークで新しい視点から回答してください。
+
+【依頼内容】
+${useCase}
+
+【回答のルール】
+・${lang}回答してください。
+・「普通の案」と「意外性のある案」を分けて提示してください。
+・常識を疑い、逆転の発想やアナロジーを積極的に使ってください。
+・少なくとも1つは「誰も思いつかないような」アイデアを含めてください。
+・最後に「このアイデアをさらに発展させるには？」という視点も一言添えてください。`;
+    }
+
+    // ────────────────────────────────────────────
+    //  コピー共通処理
+    // ────────────────────────────────────────────
+    const COPY_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+    const CHECK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
+    function copyText(sourceId, btnId) {
+      const text = document.getElementById(sourceId).textContent;
+      const btn  = document.getElementById(btnId);
+
+      const doSuccess = () => {
+        btn.innerHTML = `${CHECK_ICON} コピー済み`;
+        btn.classList.add('copied');
+        setTimeout(() => resetCopyBtn(btnId), 2000);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(doSuccess).catch(() => fallbackCopy(text, doSuccess));
+      } else {
+        fallbackCopy(text, doSuccess);
+      }
+    }
+
+    function fallbackCopy(text, onSuccess) {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      onSuccess();
+    }
+
+    function resetCopyBtn(btnId) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.innerHTML = `${COPY_ICON} コピー`;
+      btn.classList.remove('copied');
+    }
+
+    // Ctrl+Enter で生成
+    document.getElementById('use-case').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        generatePrompt();
+      }
+    });
+  </script>
+
+</body>
+</html>
